@@ -1028,8 +1028,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                             }
                         }
 
-                        // We have the final set of tasks in the queue now, no more can be added, run all remaining.
-                        // No need to loop here, this is the final pass.
+                        // we have the final set of tasks in the queue now, no more can be added, run all remaining.
+                        // no need to loop here, this is the final pass.
                         confirmShutdown();
                     } finally {
                         try {
