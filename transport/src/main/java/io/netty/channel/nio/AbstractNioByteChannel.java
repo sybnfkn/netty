@@ -136,7 +136,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
+            // 池化还是非池化
             final ByteBufAllocator allocator = config.getAllocator();
+            // 负责自适应调整当前缓存分配的大小，防止缓存分配过多或者过少
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
 
