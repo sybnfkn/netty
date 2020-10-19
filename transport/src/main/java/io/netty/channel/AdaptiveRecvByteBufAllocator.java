@@ -116,17 +116,20 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             // This helps adjust more quickly when large amounts of data is pending and can avoid going back to
             // the selector to check for more data. Going back to the selector can add significant latency for large
             // data transfers.
+            // 如果预期和实际相同
             if (bytes == attemptedBytesRead()) {
                 record(bytes);
             }
             super.lastBytesRead(bytes);
         }
 
+        // 每次分配buf，根据这个方法返回大小进行创建
         @Override
         public int guess() {
             return nextReceiveBufferSize;
         }
 
+        // 读取完之后，记录下，计算出下一次应该分配的大小
         private void record(int actualReadBytes) {
             if (actualReadBytes <= SIZE_TABLE[max(0, index - INDEX_DECREMENT)]) {
                 if (decreaseNow) {

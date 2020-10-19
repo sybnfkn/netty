@@ -122,8 +122,10 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public void lastBytesRead(int bytes) {
+            // 最近读取的长度
             lastBytesRead = bytes;
             if (bytes > 0) {
+                // 读了读少数据了
                 totalBytesRead += bytes;
             }
         }
@@ -155,6 +157,7 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
             return attemptedBytesRead;
         }
 
+        // 每次读取之前，记录下"尝试读取"的大小
         @Override
         public void attemptedBytesRead(int bytes) {
             attemptedBytesRead = bytes;

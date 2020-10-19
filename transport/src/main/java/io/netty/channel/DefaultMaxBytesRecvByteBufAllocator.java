@@ -40,6 +40,7 @@ public class DefaultMaxBytesRecvByteBufAllocator implements MaxBytesRecvByteBufA
         private final UncheckedBooleanSupplier defaultMaybeMoreSupplier = new UncheckedBooleanSupplier() {
             @Override
             public boolean get() {
+                // 尝试读取的数据和实际数据相同，说明buf读满了，那么socket缓冲区中可能还有数据
                 return attemptBytesRead == lastBytesRead;
             }
         };
