@@ -1168,6 +1168,7 @@
                 </if>
 
                 <!-- Print the obtained commit information. -->
+                <!--suppress UnresolvedMavenProperty -->
                 <echo>Current commit: ${shortCommitHash} on ${commitDate}</echo>
 
                 <!-- Generate the .properties file. -->

@@ -22,8 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.sctp.SctpMessage;
 import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
+//import io.netty.util.collection.IntObjectHashMap;
+//import io.netty.util.collection.IntObjectMap;
 
 import java.util.List;
 
@@ -33,48 +33,48 @@ import java.util.List;
  * {@link ChannelInboundHandler}.
  */
 public class SctpMessageCompletionHandler extends MessageToMessageDecoder<SctpMessage> {
-    private final IntObjectMap<ByteBuf> fragments = new IntObjectHashMap<ByteBuf>();
+//    private final IntObjectMap<ByteBuf> fragments = new IntObjectHashMap<ByteBuf>();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, SctpMessage msg, List<Object> out) throws Exception {
-        final ByteBuf byteBuf = msg.content();
-        final int protocolIdentifier = msg.protocolIdentifier();
-        final int streamIdentifier = msg.streamIdentifier();
-        final boolean isComplete = msg.isComplete();
-        final boolean isUnordered = msg.isUnordered();
-
-        ByteBuf frag = fragments.remove(streamIdentifier);
-        if (frag == null) {
-            frag = Unpooled.EMPTY_BUFFER;
-        }
-
-        if (isComplete && !frag.isReadable()) {
-            //data chunk is not fragmented
-            out.add(msg);
-        } else if (!isComplete && frag.isReadable()) {
-            //more message to complete
-            fragments.put(streamIdentifier, Unpooled.wrappedBuffer(frag, byteBuf));
-        } else if (isComplete && frag.isReadable()) {
-            //last message to complete
-            SctpMessage assembledMsg = new SctpMessage(
-                    protocolIdentifier,
-                    streamIdentifier,
-                    isUnordered,
-                    Unpooled.wrappedBuffer(frag, byteBuf));
-            out.add(assembledMsg);
-        } else {
-            //first incomplete message
-            fragments.put(streamIdentifier, byteBuf);
-        }
-        byteBuf.retain();
+//        final ByteBuf byteBuf = msg.content();
+//        final int protocolIdentifier = msg.protocolIdentifier();
+//        final int streamIdentifier = msg.streamIdentifier();
+//        final boolean isComplete = msg.isComplete();
+//        final boolean isUnordered = msg.isUnordered();
+//
+//        ByteBuf frag = fragments.remove(streamIdentifier);
+//        if (frag == null) {
+//            frag = Unpooled.EMPTY_BUFFER;
+//        }
+//
+//        if (isComplete && !frag.isReadable()) {
+//            //data chunk is not fragmented
+//            out.add(msg);
+//        } else if (!isComplete && frag.isReadable()) {
+//            //more message to complete
+//            fragments.put(streamIdentifier, Unpooled.wrappedBuffer(frag, byteBuf));
+//        } else if (isComplete && frag.isReadable()) {
+//            //last message to complete
+//            SctpMessage assembledMsg = new SctpMessage(
+//                    protocolIdentifier,
+//                    streamIdentifier,
+//                    isUnordered,
+//                    Unpooled.wrappedBuffer(frag, byteBuf));
+//            out.add(assembledMsg);
+//        } else {
+//            //first incomplete message
+//            fragments.put(streamIdentifier, byteBuf);
+//        }
+//        byteBuf.retain();
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        for (ByteBuf buffer: fragments.values()) {
-            buffer.release();
-        }
-        fragments.clear();
-        super.handlerRemoved(ctx);
+//        for (ByteBuf buffer: fragments.values()) {
+//            buffer.release();
+//        }
+//        fragments.clear();
+//        super.handlerRemoved(ctx);
     }
 }
