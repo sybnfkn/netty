@@ -387,6 +387,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         // Register all channels to the new Selector.
         int nChannels = 0;
         for (SelectionKey key: oldSelector.keys()) {
+            // channel是绑定在附件上的
             Object a = key.attachment();
             try {
                 if (!key.isValid() || key.channel().keyFor(newSelectorTuple.unwrappedSelector) != null) {
@@ -507,6 +508,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     }
                     selectCnt = 0;
                 } else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case)
+                    // selector意外唤醒，没有任务处理，也没有事件
                     selectCnt = 0;
                 }
             } catch (CancelledKeyException e) {
@@ -549,6 +551,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
         // 解决空轮转问题
         if (SELECTOR_AUTO_REBUILD_THRESHOLD > 0 &&
+                // 如果空轮转了512次，直接重建selector
                 selectCnt >= SELECTOR_AUTO_REBUILD_THRESHOLD) {
             // The selector returned prematurely many times in a row.
             // Rebuild the selector to work around the problem.

@@ -470,6 +470,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
         // 3. 计算任务处理的超时时间
         final long deadline = timeoutNanos > 0 ? ScheduledFutureTask.nanoTime() + timeoutNanos : 0;
+        // 运行数量计数器
         long runTasks = 0;
         long lastExecutionTime;
         for (;;) {
