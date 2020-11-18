@@ -112,7 +112,9 @@ public final class ChannelOutboundBuffer {
      * the message was written.
      */
     public void addMessage(Object msg, int size, ChannelPromise promise) {
+        // 创建一个待写的消息节点
         Entry entry = Entry.newInstance(msg, size, total(msg), promise);
+        // 将消息节点挂到链表上
         if (tailEntry == null) {
             flushedEntry = null;
         } else {
@@ -126,6 +128,7 @@ public final class ChannelOutboundBuffer {
 
         // increment pending bytes after adding message to the unflushed arrays.
         // See https://github.com/netty/netty/issues/1619
+        // 将数据大小进行累加计算，判断是否触发高水位，是否channel不可写
         incrementPendingOutboundBytes(entry.pendingSize, false);
     }
 
@@ -133,6 +136,7 @@ public final class ChannelOutboundBuffer {
      * Add a flush to this {@link ChannelOutboundBuffer}. This means all previous added messages are marked as flushed
      * and so you will be able to handle them.
      */
+    // 拿到unflushedEntry指针, 然后将flushedEntry指向unflushedEntry指向节点
     public void addFlush() {
         // There is no need to process all entries if there was already a flush before and no new messages
         // where added in the meantime.
@@ -173,6 +177,7 @@ public final class ChannelOutboundBuffer {
         }
 
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
+        // 高水位
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
             setUnwritable(invokeLater);
         }
@@ -602,6 +607,7 @@ public final class ChannelOutboundBuffer {
         for (;;) {
             final int oldValue = unwritable;
             final int newValue = oldValue | 1;
+            // 设置可写标示
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
                 if (oldValue == 0 && newValue != 0) {
                     fireChannelWritabilityChanged(invokeLater);

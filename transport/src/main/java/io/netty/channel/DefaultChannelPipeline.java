@@ -1309,6 +1309,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         HeadContext(DefaultChannelPipeline pipeline) {
             super(pipeline, null, HEAD_NAME, HeadContext.class);
+            // ********unsafe引用的是channel的
             unsafe = pipeline.channel().unsafe();
             setAddComplete();
         }

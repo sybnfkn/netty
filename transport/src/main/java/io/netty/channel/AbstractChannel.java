@@ -870,7 +870,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                // 堆buf转堆外buf, 堆外buf直接返回. 这里的数据应该从"编解码器"来的
                 msg = filterOutboundMessage(msg);
+                // 估算要写入buffer大小
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
                     size = 0;

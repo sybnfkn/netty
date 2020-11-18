@@ -266,6 +266,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             writeSpinCount -= doWriteInternal(in, msg);
         } while (writeSpinCount > 0);
 
+        // 还没写完，就注册write事件
         incompleteWrite(writeSpinCount < 0);
     }
 
