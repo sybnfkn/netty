@@ -1398,6 +1398,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.fireChannelActive();
 
+            // 就可以开始读了
             readIfIsAutoRead();
         }
 

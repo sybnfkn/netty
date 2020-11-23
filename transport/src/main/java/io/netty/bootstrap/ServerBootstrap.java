@@ -207,14 +207,19 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            // 前面创建的netty的channel
             final Channel child = (Channel) msg;
 
+            // 设置pipeline
             child.pipeline().addLast(childHandler);
 
+            // 设置参数（这些都是用户自己设置好的）
             setChannelOptions(child, childOptions, logger);
+            // 设置属性
             setAttributes(child, childAttrs);
 
             try {
+                // 进行注册
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
