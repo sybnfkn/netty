@@ -440,6 +440,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     static void setChannelOptions(
             Channel channel, Map.Entry<ChannelOption<?>, Object>[] options, InternalLogger logger) {
         for (Map.Entry<ChannelOption<?>, Object> e: options) {
+            // 设置属性
             setChannelOption(channel, e.getKey(), e.getValue(), logger);
         }
     }

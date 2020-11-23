@@ -90,21 +90,24 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     readPending = false;
+                    // 调用的是nio serverchannel的channelRead方法 ServerBootstrapAcceptor
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 readBuf.clear();
                 allocHandle.readComplete();
                 pipeline.fireChannelReadComplete();
 
+                // 出现异常。。。
                 if (exception != null) {
                     closed = closeOnReadError(exception);
-
+                    // 做一些清理工作
                     pipeline.fireExceptionCaught(exception);
                 }
 
                 if (closed) {
                     inputShutdown = true;
                     if (isOpen()) {
+                        // 关闭channel
                         close(voidPromise());
                     }
                 }
