@@ -100,7 +100,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 // 出现异常。。。
                 if (exception != null) {
                     closed = closeOnReadError(exception);
-                    // 做一些清理工作
+                    // 调用用户自定义handler，做一些清理工作
                     pipeline.fireExceptionCaught(exception);
                 }
 

@@ -378,6 +378,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         for (;;) {
             try {
                 // 会将nio的channel注册到selector上，将netty的channel对象注册到 nio channel的 att
+                // 将channel绑定到 这个SingleThreadEventLoop的selector上
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
