@@ -80,14 +80,16 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
         public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
+            // 如果累积为空并且输入缓冲区是连续的，则直接使用它
             if (!cumulation.isReadable() && in.isContiguous()) {
                 // If cumulation is empty and input buffer is contiguous, use it directly
                 cumulation.release();
                 return in;
             }
             try {
+                // 可读的字节数
                 final int required = in.readableBytes();
-                // 可读 > 累加器最大可写
+                // 可读 > 累加器最大可写 累加器不够写了
                 if (required > cumulation.maxWritableBytes() ||
                         (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
                         cumulation.isReadOnly()) {
@@ -97,12 +99,14 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
                     return expandCumulation(alloc, cumulation, in);
                 }
+                // 还可以向累加器中写
                 cumulation.writeBytes(in, in.readerIndex(), required);
                 in.readerIndex(in.writerIndex());
                 return cumulation;
             } finally {
                 // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
                 // for whatever release (for example because of OutOfMemoryError)
+                // 释放掉底层传上来的bytebuf
                 in.release();
             }
         }
@@ -154,7 +158,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     // 累计buf
     ByteBuf cumulation;
-    // 累加器
+    // 累加器，默认是MERGE这种
     private Cumulator cumulator = MERGE_CUMULATOR;
     private boolean singleDecode;
     private boolean first;
@@ -268,16 +272,23 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
 
+    /**
+     * 数据的到来
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             CodecOutputList out = CodecOutputList.newInstance();
             try {
+                // 累加器是空，说明是第一次
                 first = cumulation == null;
                 // 累加器分配多大，
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
-
+                // 调用编解码器，构建新的对象
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
                 throw e;
@@ -299,6 +310,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
                     int size = out.size();
                     firedChannelRead |= out.insertSinceRecycled();
+                    // 向后传播
                     fireChannelRead(ctx, out, size);
                 } finally {
                     out.recycle();
@@ -443,7 +455,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     outSize = 0;
                 }
 
+                // 解析前可读字节数
                 int oldInputLength = in.readableBytes();
+                // 具体的编解码器处理
                 decodeRemovalReentryProtection(ctx, in, out);
 
                 // Check if this handler was removed before continuing the loop.
@@ -456,6 +470,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
                 if (outSize == out.size()) {
                     if (oldInputLength == in.readableBytes()) {
+                        // 数据没有什么变化，说明已经解析不出新的对象了，直接推出吧
                         break;
                     } else {
                         continue;
@@ -535,12 +550,14 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     static ByteBuf expandCumulation(ByteBufAllocator alloc, ByteBuf oldCumulation, ByteBuf in) {
         int oldBytes = oldCumulation.readableBytes();
         int newBytes = in.readableBytes();
+        // 老的可读字节数 + 加上新的可读字节数
         int totalBytes = oldBytes + newBytes;
-        // 计算新的累加器
+        // 计算新的累加器 分配一个新的累加器
         ByteBuf newCumulation = alloc.buffer(alloc.calculateNewCapacity(totalBytes, MAX_VALUE));
         ByteBuf toRelease = newCumulation;
         try {
             // This avoids redundant checks and stack depth compared to calling writeBytes(...)
+            // 将数据写到新的累加器中
             newCumulation.setBytes(0, oldCumulation, oldCumulation.readerIndex(), oldBytes)
                 .setBytes(oldBytes, in, in.readerIndex(), newBytes)
                 .writerIndex(totalBytes);
@@ -548,6 +565,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             toRelease = oldCumulation;
             return newCumulation;
         } finally {
+            // 如果出现异常 将新建的newCumulation释放 否则将oldCumulation释放
             toRelease.release();
         }
     }

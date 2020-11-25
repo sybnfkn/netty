@@ -492,6 +492,7 @@ public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
     }
 
     /**
+     * 提取指定缓冲区的子区域。
      * Extract the sub-region of the specified buffer.
      */
     protected ByteBuf extractFrame(ChannelHandlerContext ctx, ByteBuf buffer, int index, int length) {
