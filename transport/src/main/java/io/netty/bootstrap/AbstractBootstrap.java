@@ -269,6 +269,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 初始化ServerSocketChannel，并注册到Selector多路复用器组件上去
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -307,7 +308,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 反射创建ServerSocketChannel
             channel = channelFactory.newChannel();
+            // 让ServerSocketChannel去监听某个端口号，设置一些网络参数
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -320,6 +323,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        // ServerSocketChannel注册到Selector上去，关注他的OP_ACCEPT网络事件，不停的轮询他
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
