@@ -137,9 +137,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
-            // 池化还是非池化
+            // 池化还是非池化 （根据启动参数判断池化还是非池化）
             final ByteBufAllocator allocator = config.getAllocator();
             // 负责自适应调整当前缓存分配的大小，防止缓存分配过多或者过少
+            // 分配器：固定分配器 还是 自适应分配器
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -147,7 +148,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    // 分配buffer
                     byteBuf = allocHandle.allocate(allocator);
+                    // 根据读取的字节
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
                     // 读取的数据大小，如果==0说明本次没有读到任何数据，循环退出
                     // 如果<0 说明本次读取底层，返回EOF，此时需要中断
@@ -176,6 +179,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     closeOnRead(pipeline);
                 }
             } catch (Throwable t) {
+                // 读取异常 有可能对方关闭了连接，此时要捕捉到异常，然后关闭自身连接
                 handleReadException(pipeline, byteBuf, t, close, allocHandle);
             } finally {
                 // Check if there is a readPending which was not processed yet.

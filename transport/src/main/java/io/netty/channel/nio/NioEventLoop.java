@@ -386,6 +386,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         // Register all channels to the new Selector.
         int nChannels = 0;
+        // 遍历旧的selectionKey
         for (SelectionKey key: oldSelector.keys()) {
             // channel是绑定在附件上的
             Object a = key.attachment();
@@ -393,9 +394,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 if (!key.isValid() || key.channel().keyFor(newSelectorTuple.unwrappedSelector) != null) {
                     continue;
                 }
-
                 int interestOps = key.interestOps();
                 key.cancel();
+                // 注册到新的上
                 SelectionKey newKey = key.channel().register(newSelectorTuple.unwrappedSelector, interestOps, a);
                 if (a instanceof AbstractNioChannel) {
                     // Update SelectionKey
@@ -420,6 +421,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         try {
             // time to close the old selector as everything else is registered to the new one
+            // 关闭旧的
             oldSelector.close();
         } catch (Throwable t) {
             if (logger.isWarnEnabled()) {
@@ -557,6 +559,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // Rebuild the selector to work around the problem.
             logger.warn("Selector.select() returned prematurely {} times in a row; rebuilding Selector {}.",
                     selectCnt, selector);
+            // 重建selector
             rebuildSelector();
             return true;
         }
