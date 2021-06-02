@@ -32,6 +32,9 @@ import static java.lang.Math.min;
  * amount of the allocated buffer two times consecutively.  Otherwise, it keeps
  * returning the same prediction.
  */
+// 基于历史的数据采集做预测:
+//   1.前一次接收的数据完全读满了ByteBuf，则下次会增大缓冲区。
+//   2.连续两次接收的数据小于指定值，则会缩小下次分配的缓冲区。
 public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufAllocator {
 
     // 最小缓存（64），在SIZE_TABLE中对应的下标为3。
@@ -51,10 +54,12 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
 
     static {
         List<Integer> sizeTable = new ArrayList<Integer>();
+        // // 512字节内，以16字节为步长，递增
         for (int i = 16; i < 512; i += 16) {
             sizeTable.add(i);
         }
 
+        // 512字节后，成倍扩容
         for (int i = 512; i > 0; i <<= 1) {
             sizeTable.add(i);
         }
@@ -71,6 +76,12 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
     @Deprecated
     public static final AdaptiveRecvByteBufAllocator DEFAULT = new AdaptiveRecvByteBufAllocator();
 
+    /**
+     * 通过给定size查找下标，二分查找法。
+     *     如果size不在SIZE_TABLE内，返回最接近它的一个稍小值的索引
+     * @param size
+     * @return
+     */
     private static int getSizeTableIndex(final int size) {
         for (int low = 0, high = SIZE_TABLE.length - 1;;) {
             if (high < low) {
@@ -99,6 +110,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
         private final int minIndex;
         private final int maxIndex;
         private int index;
+        // // 下次接受的缓冲区大小
         private int nextReceiveBufferSize;
         private boolean decreaseNow;
 
@@ -106,10 +118,16 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             this.minIndex = minIndex;
             this.maxIndex = maxIndex;
 
+            // 根据初始值得到SIZE_TABLE的下标
             index = getSizeTableIndex(initial);
+            // 第一次分配的缓冲区大小就是initial默认值
             nextReceiveBufferSize = SIZE_TABLE[index];
         }
 
+        /**
+         * bytes是上一次实际读取到的字节数。
+         * @param bytes
+         */
         @Override
         public void lastBytesRead(int bytes) {
             // If we read as much as we asked for we should check if we need to ramp up the size of our next guess.
@@ -118,12 +136,14 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             // data transfers.
             // 如果预期和实际相同
             if (bytes == attemptedBytesRead()) {
+                // 实际读取的字节数填满了缓冲区，则扩容。
                 record(bytes);
             }
+            // 调用父类方法，将数值累加到 totalBytesRead
             super.lastBytesRead(bytes);
         }
 
-        // 每次分配buf，根据这个方法返回大小进行创建
+        // 预测下次需要分配的缓冲区大小
         @Override
         public int guess() {
             return nextReceiveBufferSize;
@@ -131,6 +151,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
 
         // 读取完之后，记录下，计算出下一次应该分配的大小
         private void record(int actualReadBytes) {
+            // 如果连续两次，读取的字节数 小于等于 前一个容量大小
             if (actualReadBytes <= SIZE_TABLE[max(0, index - INDEX_DECREMENT)]) {
                 if (decreaseNow) {
                     index = max(index - INDEX_DECREMENT, minIndex);
@@ -146,6 +167,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             }
         }
 
+        // 数据读取完毕，根据本次读取的总字节数，自适应调整下次应该分配的缓冲区大小
         @Override
         public void readComplete() {
             record(totalBytesRead());

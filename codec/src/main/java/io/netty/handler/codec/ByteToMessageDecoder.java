@@ -106,7 +106,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             } finally {
                 // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
                 // for whatever release (for example because of OutOfMemoryError)
-                // 释放掉底层传上来的bytebuf
+                // 释放掉底层传上来的bytebuf 这是在read时候用自适应的bytebuf接受的，这里放入累加器了，所以需要释放掉了
                 in.release();
             }
         }
@@ -286,7 +286,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 // 累加器是空，说明是第一次
                 first = cumulation == null;
                 // 累加器分配多大，
-                cumulation = cumulator.cumulate(ctx.alloc(),
+                cumulation = cumulator.cumulate(ctx.alloc()/*内存分配器*/,
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
                 // 调用编解码器，构建新的对象
                 callDecode(ctx, cumulation, out);

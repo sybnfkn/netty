@@ -142,20 +142,28 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             // 负责自适应调整当前缓存分配的大小，防止缓存分配过多或者过少
             // 分配器：固定分配器 还是 自适应分配器
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
+            // 重置统计信息
             allocHandle.reset(config);
 
             ByteBuf byteBuf = null;
             boolean close = false;
             try {
+                /*
+                    当对端发送一个超大的数据包时，TCP会拆包。
+                    OP_READ事件只会触发一次，Netty需要循环读，默认最多读16次,因此ChannelRead()可能会触发多次，拿到的是半包数据。
+                    如果16次没把数据读完，没有关系，下次select()还会继续处理。
+                    对于Selector的可读事件，如果你没有读完数据，它会一直返回。
+                */
                 do {
-                    // 分配buffer
+                    // 分配buffer，大小能容纳可读数据，又不过于浪费空间
                     byteBuf = allocHandle.allocate(allocator);
-                    // 根据读取的字节
+                    // 根据读取到的实际字节数，自适应调整下次分配的缓冲区大小
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
                     // 读取的数据大小，如果==0说明本次没有读到任何数据，循环退出
                     // 如果<0 说明本次读取底层，返回EOF，此时需要中断
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
+                        // 什么都没读到，释放buffer
                         byteBuf.release();
                         byteBuf = null;
                         close = allocHandle.lastBytesRead() < 0;
@@ -166,6 +174,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         break;
                     }
 
+                    // 递增读取的次数
                     allocHandle.incMessagesRead(1);
                     readPending = false;
                     pipeline.fireChannelRead(byteBuf);
