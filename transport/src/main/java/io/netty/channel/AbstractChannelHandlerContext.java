@@ -786,6 +786,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 (MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
         final Object m = pipeline.touch(msg, next);
         EventExecutor executor = next.executor();
+        // 如果当前线程是EventLoop线程，那就直接执行
         if (executor.inEventLoop()) {
             if (flush) {
                 next.invokeWriteAndFlush(m, promise);
@@ -793,7 +794,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 next.invokeWrite(m, promise);
             }
         } else {
+            // 如果不是EventLoop线程，构建一个WriteTask，放入taskQueue中
             final WriteTask task = WriteTask.newInstance(next, m, promise, flush);
+            // 安全的执行，就是将任务放入taskQueue
             if (!safeExecute(executor, task, promise, m, !flush)) {
                 // We failed to submit the WriteTask. We need to cancel it so we decrement the pending bytes
                 // and put it back in the Recycler for re-use later.
@@ -987,6 +990,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             if (lazy && executor instanceof AbstractEventExecutor) {
                 ((AbstractEventExecutor) executor).lazyExecute(runnable);
             } else {
+                // executor 就是eventLoop
                 executor.execute(runnable);
             }
             return true;
