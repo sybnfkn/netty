@@ -195,9 +195,11 @@ public final class ChannelOutboundBuffer {
         if (size == 0) {
             return;
         }
-
+        // 修改当前水位
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, -size);
+        // 根据高低水位, 决定是否修改"unwritable"
         if (notifyWritability && newWriteBufferSize < channel.config().getWriteBufferLowWaterMark()) {
+            // 设置channel可写
             setWritable(invokeLater);
         }
     }
@@ -258,6 +260,7 @@ public final class ChannelOutboundBuffer {
      * flushed message exists at the time this method is called it will return {@code false} to signal that no more
      * messages are ready to be handled.
      */
+    // 每个链表节点写完, 都会调用remove
     public boolean remove() {
         Entry e = flushedEntry;
         if (e == null) {
@@ -272,9 +275,11 @@ public final class ChannelOutboundBuffer {
         removeEntry(e);
 
         if (!e.cancelled) {
-            // only release message, notify and decrement if it was not canceled before.
+            // 释放消息占用bytebuf
             ReferenceCountUtil.safeRelease(msg);
+            // 通知调用方写入成功
             safeSuccess(promise);
+            // 将水位降低 , 修改是否可写状态
             decrementPendingOutboundBytes(size, false, true);
         }
 
