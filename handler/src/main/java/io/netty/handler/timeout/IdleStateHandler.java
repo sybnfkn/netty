@@ -289,6 +289,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         if ((readerIdleTimeNanos > 0 || allIdleTimeNanos > 0) && reading) {
+            // 读完之后，设置最近读取时间为当前时间
             lastReadTime = ticksInNanos();
             reading = false;
         }
@@ -299,6 +300,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         // Allow writing with void promise if handler is only configured for read timeout events.
         if (writerIdleTimeNanos > 0 || allIdleTimeNanos > 0) {
+            // writeListener --》lastWriteTime = ticksInNanos();
             ctx.write(msg, promise.unvoid()).addListener(writeListener);
         } else {
             ctx.write(msg, promise);
@@ -318,6 +320,8 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         initOutputChanged(ctx);
 
         lastReadTime = lastWriteTime = ticksInNanos();
+        // readerIdleTimeNanos writerIdleTimeout allIdleTimeNanos
+        // 在应层层构造handler时候传入
         if (readerIdleTimeNanos > 0) {
             readerIdleTimeout = schedule(ctx, new ReaderIdleTimeoutTask(ctx),
                     readerIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -500,6 +504,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 firstReaderIdleEvent = false;
 
                 try {
+                    // 触发读空闲的事件，后置的handler，需要将连接关闭
                     IdleStateEvent event = newIdleStateEvent(IdleState.READER_IDLE, first);
                     channelIdle(ctx, event);
                 } catch (Throwable t) {
