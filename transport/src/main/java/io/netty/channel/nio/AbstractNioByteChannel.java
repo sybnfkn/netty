@@ -185,6 +185,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 pipeline.fireChannelReadComplete();
 
                 if (close) {
+                    // 框架帮忙关闭了连接
                     closeOnRead(pipeline);
                 }
             } catch (Throwable t) {
